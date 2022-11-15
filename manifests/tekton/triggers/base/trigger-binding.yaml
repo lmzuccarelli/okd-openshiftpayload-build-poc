@@ -1,0 +1,16 @@
+apiVersion: triggers.tekton.dev/v1alpha1 
+kind: TriggerBinding 
+metadata:
+  name: okd-openshift-build-poc-binding
+  namespace: okd-team
+spec:
+  params: 
+  - name: git-repo-url
+    value: $(body.url)
+  - name: git-repo-name
+    value: $(body.name)
+  - name: git-hash
+    value: $(body.hash)
+  - name: git-revision
+    value: $(body.revision)
+  

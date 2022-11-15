@@ -1,0 +1,1 @@
+curl -H "Accept: application/json" -d'{"url":"https://github.com/openshift/assisted-installer-agent","name":"assisted-installer-agent", "hash":"c9153da1eacf25eb1d85b45c939ac48880d1af6c","revision":"master"}' 'http://el-okd-openshift-build-poc.okd-team.svc.cluster.local:8080'

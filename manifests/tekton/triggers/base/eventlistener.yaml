@@ -1,0 +1,13 @@
+apiVersion: triggers.tekton.dev/v1alpha1 
+kind: EventListener 
+metadata:
+  name: okd-openshift-build-poc
+  namespace: okd-team
+spec:
+  serviceAccountName: pipeline
+  triggers:
+    - name: okd-openshift-build-poc-trigger
+      bindings:
+        - ref: okd-openshift-build-poc-binding
+      template: 
+        ref: okd-openshift-build-poc-template

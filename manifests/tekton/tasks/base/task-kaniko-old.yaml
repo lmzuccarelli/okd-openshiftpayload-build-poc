@@ -1,0 +1,70 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: okd-openshift-build-poc
+  namespace: okd-team
+spec:
+  params:
+  - name: git-repo-url
+    description: The repo url
+    type: string
+  - name: git-repo-name
+    description: repo name
+    type: string
+  - name: git-hash
+    description: repo commit hash
+    type: string
+  - name: base-image-registry
+    description: base registry image to push to
+    type: string
+    default: quay.io/luzuccar
+  - name: tag-version
+    description: tag version
+    type: string
+    default: 4.12
+ 
+  workspaces:
+  - name: src
+  
+  steps:
+  - name: dockerfile-update
+    workingDir: /workspace/src/$(params.git-repo-name)
+    image:  quay.io/okd/go-bundle-tools:v1.0.1
+    script: |
+      #!/usr/bin/env bash
+      #
+      # use sed to update the current Docker.ocp file
+      set -euxo pipefail
+      sed -E -i 's/^FROM(.)*builder$/FROM quay.io\/luzuccar\/golang-builder:v1.19.3 AS builder/' Dockerfile.ocp
+      sed -E -i 's/^FROM(.)*base$/FROM quay.io\/luzuccar\/base:latest/' Dockerfile.ocp
+
+      cat Dockerfile.ocp
+
+    resources:
+      limits:
+        cpu: 250m
+        memory: 400Mi
+      requests:
+        cpu: 250m
+        memory: 400Mi
+
+  - name: container-build-and-push
+    workingDir: /workspace/src/$(params.git-repo-name)
+    image:  gcr.io/kaniko-project/executor:latest
+    resources:
+      limits:
+        cpu: 2000m
+        memory: 4000Mi
+      requests:
+        cpu: 2000m
+        memory: 4000Mi
+    command: ["/kaniko/executor"]
+    args: ["--dockerfile=/workspace/src/$(params.git-repo-name)/Dockerfile.ocp","--context=/workspace/src/$(params.git-repo-name)/","--destination=$(params.base-image-registry)/$(params.git-repo-name):$(params.tag-version)","--ignore-path=/product_uuid","--dockerfile=/workspace/src/$(params.git-repo-name)/Dockerfile.ocp", "--context=/workspace/src/$(params.git-repo-name)/","--destination=$(params.base-image-registry)/$(params.git-repo-name):$(params.tag-version)","--ignore-path=/product_uuid","--ignore-path=/usr/bin/newuidmap","--ignore-path=/usr/bin/newgidmap","--ignore-path=/usr/bin/arping","--ignore-path=/usr/bin/clockdiff" ]
+    volumeMounts:
+    - name: docker-config
+      mountPath: /kaniko/.docker/
+
+  volumes:
+  - name: docker-config
+    configMap:
+      name: docker-config

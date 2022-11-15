@@ -1,0 +1,78 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: okd-openshift-build-poc
+  namespace: okd-team
+spec:
+  params:
+  - name: git-repo-url
+    description: The repo url
+    type: string
+  - name: git-repo-name
+    description: repo name
+    type: string
+  - name: git-hash
+    description: repo commit hash
+    type: string
+  - name: base-image-registry
+    description: base registry image to push to
+    type: string
+    default: 192.168.0.12:5000/openshift
+  - name: tag-version
+    description: tag version
+    type: string
+    default: 4.12
+ 
+  workspaces:
+  - name: src
+  
+  steps:
+  - name: dockerfile-update
+    workingDir: /workspace/src/$(params.git-repo-name)
+    image:  quay.io/okd/go-bundle-tools:v1.0.1
+    script: |
+      #!/usr/bin/env bash
+      #
+      # use sed to update the current Docker.ocp file
+      set -euxo pipefail
+      sed -E -i 's/^FROM(.)*builder$/FROM quay.io\/luzuccar\/golang-toolset:dev AS builder/' Dockerfile.ocp
+      sed -E -i 's/^FROM(.)*base$/FROM quay.io\/luzuccar\/base:latest/' Dockerfile.ocp
+
+      cat Dockerfile.ocp
+
+    resources:
+      limits:
+        cpu: 100m
+        memory: 250Mi
+      requests:
+        cpu: 100m
+        memory: 250Mi
+
+  - name: container-build-and-push
+    workingDir: /workspace/src/$(params.git-repo-name)
+    image:  quay.io/podman/stable:latest
+    securityContext:
+      privileged: true
+    resources:
+      limits:
+        cpu: 400m
+        memory: 2500Mi
+      requests:
+        cpu: 400m
+        memory: 2500Mi
+    script: |
+      #!/bin/bash 
+      # build the container
+      podman build -t $(params.base-image-registry)/$(params.git-repo-name):$(params.tag-version) -f  Dockerfile.ocp
+      # push the built container
+      # podman push $(params.base-image-registry)/$(params.git-repo-name):$(params.tag-version) --authfile=/tmp/config.json
+      podman push $(params.base-image-registry)/$(params.git-repo-name):$(params.tag-version) --tls-verify=false
+    volumeMounts:
+    - name: docker-config
+      mountPath: /tmp
+
+  volumes:
+  - name: docker-config
+    configMap:
+      name: docker-config
+

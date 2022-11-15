@@ -1,0 +1,21 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: curl-pod
+  namespace: okd-team
+spec:
+  containers:
+  - name: trigger-build
+    image: registry.access.redhat.com/ubi9/ubi:9.0.0-1703 
+    command:
+      - '/bin/sh'
+      - '-c'
+      - 'sleep 10000'
+    resources:
+      limits:
+        cpu: 200m
+        memory: 250Mi
+      requests:
+        cpu: 200m
+        memory: 250Mi
+     
