@@ -2,7 +2,10 @@
 
 ## Intro
 
-This is a simple POC project to build openshift/okd core operator images and push them to a local registry 
+This is a simple POC project to build openshift/okd core operator images and push them to a local registry.
+The reason for doing this POC as that the current payload build for okd makes use of openshift
+specific imagestreams and buildconfigs. This POC mitigates the need for buildconfigs and image
+streams to realise the build for okd paylods
 
 **NB** This is a WIP 
 
